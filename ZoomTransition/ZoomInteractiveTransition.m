@@ -29,6 +29,10 @@
 
 @interface ZoomInteractiveTransition()
 
+@property (nonatomic, strong) UIViewController <ZoomTransitionProtocol> *source;
+@property (nonatomic, strong) UIViewController <ZoomTransitionProtocol> *presenterVC;
+@property (nonatomic, strong) UIViewController <ZoomTransitionProtocol> *presentedVC;
+
 @property (nonatomic, weak) id <UINavigationControllerDelegate> previousDelegate;
 @property (nonatomic, assign) CGFloat startScale;
 @property (nonatomic, assign) UINavigationControllerOperation operation;
@@ -61,13 +65,19 @@
     return self;
 }
 
--(instancetype)init
-{
-    if (self = [super init])
-    {
-        [self commonSetup];
-    }
-    return self;
+- (instancetype)initWithSource:(UIViewController <ZoomTransitionProtocol> *)source {
+	if (self = [super init]) {
+		self.source = source;
+		[self commonSetup];
+	}
+	return self;
+}
+
+- (instancetype)init {
+	if (self = [super init]) {
+		[self commonSetup];
+	}
+	return self;
 }
 
 #pragma mark - UIViewControllerAnimatedTransitioning
@@ -95,74 +105,85 @@
     return sourceImageView;
 }
 
--(void)animateTransition:(id<UIViewControllerContextTransitioning>)transitionContext
-{
-    UIViewController <ZoomTransitionProtocol> * fromVC = (id)[transitionContext viewControllerForKey:UITransitionContextFromViewControllerKey];
-    UIViewController <ZoomTransitionProtocol> *toVC = (id)[transitionContext viewControllerForKey:UITransitionContextToViewControllerKey];
-    UIView * containerView = [transitionContext containerView];
-    UIView * fromView = [fromVC view];
-    UIView * toView = [toVC view];
-    
-    [containerView addSubview:toView];
-    
-    UIView * zoomFromView = [fromVC viewForZoomTransition:true];
-    UIView * zoomToView = [toVC viewForZoomTransition:false];
-    
-    UIImageView * animatingImageView = [self initialZoomSnapshotFromView:zoomFromView
-                                                         destinationView:zoomToView];
-    
-    if ([fromVC respondsToSelector:@selector(initialZoomViewSnapshotFromProposedSnapshot:)])
-    {
-        animatingImageView = [fromVC initialZoomViewSnapshotFromProposedSnapshot:animatingImageView];
-    }
-    
-    animatingImageView.frame = [zoomFromView.superview convertRect:zoomFromView.frame
-                                                            toView:containerView];
-    
-    fromView.alpha = 1;
-    toView.alpha = 0;
-    zoomFromView.alpha = 0;
-    zoomToView.alpha = 0;
-    [containerView addSubview:animatingImageView];
-    
-    if (self.handleEdgePanBackGesture)
-    {
-        UIScreenEdgePanGestureRecognizer *edgePanRecognizer = [[UIScreenEdgePanGestureRecognizer alloc] initWithTarget:self
-                                                                                                                action:@selector(handleEdgePan:)];
-        edgePanRecognizer.edges = UIRectEdgeLeft;
-        [toView addGestureRecognizer:edgePanRecognizer];
-    }
-    
-    ZoomAnimationBlock animationBlock = nil;
-    if ([fromVC respondsToSelector:@selector(animationBlockForZoomTransition)])
-    {
-        animationBlock = [fromVC animationBlockForZoomTransition];
-    }
-    
-    [UIView animateKeyframesWithDuration:self.transitionDuration
-                                   delay:0
-                                 options:self.transitionAnimationOption
-                              animations:^{
-                                  animatingImageView.frame = [zoomToView.superview convertRect:zoomToView.frame toView:containerView];
-                                  fromView.alpha = 0;
-                                  toView.alpha = 1;
-                                  
-                                  if (animationBlock)
-                                  {
-                                      animationBlock(animatingImageView,zoomFromView,zoomToView);
-                                  }
-                              } completion:^(BOOL finished) {
-                                  if ([transitionContext transitionWasCancelled]) {
-                                      [toView removeFromSuperview];
-                                      [transitionContext completeTransition:NO];
-                                      zoomFromView.alpha = 1;
-                                  } else {
-                                      [fromView removeFromSuperview];
-                                      [transitionContext completeTransition:YES];
-                                      zoomToView.alpha = 1;
-                                  }
-                                  [animatingImageView removeFromSuperview];
-                              }];
+- (void)animateTransition:(id <UIViewControllerContextTransitioning> )transitionContext {
+	UIViewController <ZoomTransitionProtocol> *fromVC;
+	UIViewController <ZoomTransitionProtocol> *toVC;
+
+	if (self.presenterVC) {
+		fromVC = self.presenterVC;
+	}
+	else {
+		fromVC = (id)[transitionContext viewControllerForKey:UITransitionContextFromViewControllerKey];
+	}
+
+	if (self.presentedVC) {
+		toVC = self.presentedVC;
+	}
+	else {
+		toVC = (id)[transitionContext viewControllerForKey:UITransitionContextToViewControllerKey];
+	}
+
+	UIView *containerView = [transitionContext containerView];
+	UIView *fromView = [fromVC view];
+	UIView *toView = [toVC view];
+
+	[containerView addSubview:toView];
+
+	UIView *zoomFromView = [fromVC viewForZoomTransition:true];
+	UIView *zoomToView = [toVC viewForZoomTransition:false];
+
+	UIImageView *animatingImageView = [self initialZoomSnapshotFromView:zoomFromView
+	                                                    destinationView:zoomToView];
+
+	if ([fromVC respondsToSelector:@selector(initialZoomViewSnapshotFromProposedSnapshot:)]) {
+		animatingImageView = [fromVC initialZoomViewSnapshotFromProposedSnapshot:animatingImageView];
+	}
+
+	animatingImageView.frame = [zoomFromView.superview convertRect:zoomFromView.frame
+	                                                        toView:containerView];
+
+	fromView.alpha = 1;
+	toView.alpha = 0;
+	zoomFromView.alpha = 0;
+	zoomToView.alpha = 0;
+	[containerView addSubview:animatingImageView];
+
+	if (self.handleEdgePanBackGesture) {
+		UIScreenEdgePanGestureRecognizer *edgePanRecognizer = [[UIScreenEdgePanGestureRecognizer alloc] initWithTarget:self
+		                                                                                                        action:@selector(handleEdgePan:)];
+		edgePanRecognizer.edges = UIRectEdgeLeft;
+		[toView addGestureRecognizer:edgePanRecognizer];
+	}
+
+	ZoomAnimationBlock animationBlock = nil;
+	if ([fromVC respondsToSelector:@selector(animationBlockForZoomTransition)]) {
+		animationBlock = [fromVC animationBlockForZoomTransition];
+	}
+
+	[UIView animateKeyframesWithDuration:self.transitionDuration
+	                               delay:0
+	                             options:self.transitionAnimationOption
+	                          animations: ^{
+	    animatingImageView.frame = [zoomToView.superview convertRect:zoomToView.frame toView:containerView];
+	    fromView.alpha = 0;
+	    toView.alpha = 1;
+
+	    if (animationBlock) {
+	        animationBlock(animatingImageView, zoomFromView, zoomToView);
+		}
+	} completion: ^(BOOL finished) {
+	    if ([transitionContext transitionWasCancelled]) {
+	        [toView removeFromSuperview];
+	        [transitionContext completeTransition:NO];
+	        zoomFromView.alpha = 1;
+		}
+	    else {
+	        [fromView removeFromSuperview];
+	        [transitionContext completeTransition:YES];
+	        zoomToView.alpha = 1;
+		}
+	    [animatingImageView removeFromSuperview];
+	}];
 }
 
 #pragma mark - edge back gesture handling
@@ -223,6 +244,22 @@
     }
     
     return nil;
+}
+
+#pragma mark - UIViewControllerTransitioningDelegate
+
+- (id <UIViewControllerAnimatedTransitioning> )animationControllerForPresentedController:(UIViewController *)presented
+                                                                    presentingController:(UIViewController *)presenting
+                                                                        sourceController:(UIViewController *)source {
+	self.presenterVC = self.source;
+	self.presentedVC = nil;
+	return self;
+}
+
+- (id <UIViewControllerAnimatedTransitioning> )animationControllerForDismissedController:(UIViewController *)dismissed {
+	self.presenterVC = nil;
+	self.presentedVC = self.source;
+	return self;
 }
 
 @end

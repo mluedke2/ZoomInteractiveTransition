@@ -32,7 +32,7 @@
  It can also serve as a UINavigationControllerDelegate to provide automatic transition handling.
  */
 
-@interface ZoomInteractiveTransition : UIPercentDrivenInteractiveTransition <UINavigationControllerDelegate,UIViewControllerAnimatedTransitioning>
+@interface ZoomInteractiveTransition : UIPercentDrivenInteractiveTransition <UINavigationControllerDelegate, UIViewControllerAnimatedTransitioning, UIViewControllerTransitioningDelegate>
 
 /**
  UINavigationController, that wants to participate in zoom transition
@@ -65,6 +65,16 @@
  @return ZoomInteractiveTransition instance.
  */
 - (instancetype)initWithNavigationController:(UINavigationController *)nc;
+
+/**
+ *  Designated initializer for ZoomInteractiveTransition. For use when presenting a view controller.
+ *
+ *  @param source UIViewController implementing ZoomTransitionProtocol
+ *
+ *  @return ZoomInteractiveTransition instance.
+ */
+- (instancetype)initWithSource:(UIViewController <ZoomTransitionProtocol> *)source;
+
 
 /**
  *  Public method to reset the navigation controller's delegate
